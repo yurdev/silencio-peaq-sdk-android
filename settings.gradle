@@ -10,8 +10,14 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url = uri("https://repo.repsy.io/mvn/chrynan/public") } // Kotlin SecureRandom
+        jcenter()
+        maven { url 'https://jitpack.io' }
     }
 }
 
 rootProject.name = "SilencioPeaq.Android"
 include ':app'
+include ':peaq'
+include ':encrypting-kotlin-main'
+include ':lib'

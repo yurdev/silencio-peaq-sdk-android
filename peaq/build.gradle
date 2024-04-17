@@ -1,0 +1,60 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+
+}
+
+android {
+    namespace 'com.silencio.peaq'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+
+dependencies {
+
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+//    implementation 'com.google.android.material:material:1.11.0'
+//    testImplementation 'junit:junit:4.13.2'
+//    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+//    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+
+    implementation project(':encrypting-kotlin-main')
+    implementation project(':lib')
+
+    //for ss58
+    implementation 'dev.sublab:hashing-kotlin:1.0.0'
+    implementation 'dev.sublab:common-kotlin:1.0.0'
+
+    //RPC Call
+    implementation 'io.github.nova-wallet:substrate-sdk-android:1.11.1'
+    implementation 'com.neovisionaries:nv-websocket-client:2.14'
+    implementation 'com.google.code.gson:gson:2.10.1'
+
+    //for protobuf in didDocument Create
+    implementation 'com.google.protobuf:protobuf-java:3.21.7'
+    implementation 'com.google.protobuf:protobuf-kotlin:3.21.7'
+
+}
