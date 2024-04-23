@@ -5,15 +5,18 @@ import com.google.gson.Gson
 import com.google.gson.stream.JsonReader
 import com.neovisionaries.ws.client.WebSocketFactory
 import com.silencio.peaq.model.ConstantCodingPath
+import com.silencio.peaq.model.CustomServiceData
 import com.silencio.peaq.model.PublicKeyPrivateKeyAddressData
 import com.silencio.peaq.utils.LoggerImpl
 import com.silencio.peaq.utils.getResourceReader
 import com.silencio.peaq.utils.notValidResult
 import dev.sublab.common.numerics.UInt32
 import dev.sublab.common.numerics.UInt64
+import dev.sublab.ed25519.ed25519
 import dev.sublab.encrypting.keys.KeyPair
 import dev.sublab.hex.hex
 import dev.sublab.sr25519.sr25519
+import dev.sublab.sr25519.sr25519dub
 import dev.sublab.ss58.ss58
 import io.emeraldpay.polkaj.scale.ScaleCodecReader
 import io.peaq.did.Document
@@ -44,6 +47,7 @@ import jp.co.soramitsu.fearless_utils.runtime.extrinsic.signer.KeyPairSigner
 import jp.co.soramitsu.fearless_utils.runtime.metadata.RuntimeMetadata
 import jp.co.soramitsu.fearless_utils.runtime.metadata.RuntimeMetadataReader
 import jp.co.soramitsu.fearless_utils.runtime.metadata.builder.VersionedRuntimeBuilder
+import jp.co.soramitsu.fearless_utils.runtime.metadata.module.Module
 import jp.co.soramitsu.fearless_utils.runtime.metadata.v14.RuntimeMetadataSchemaV14
 import jp.co.soramitsu.fearless_utils.wsrpc.SocketService
 import jp.co.soramitsu.fearless_utils.wsrpc.executeAsync
@@ -66,7 +70,6 @@ class Peaq(
     private val seed: String
 ) {
     private var socketService: SocketService? = null
-    private var keyPair: KeyPair? = null
     private var runTimeVersion: RuntimeVersion? = null
     private var runtimeMetaData: RuntimeMetadata? = null
     private var catalog: TypeRegistry? = null
@@ -92,21 +95,23 @@ class Peaq(
                 return WebSocketResponseInterceptor.ResponseDelivery.DELIVER_TO_SENDER
             }
         })
-
-
+        socketService?.start(baseURL)
     }
 
     suspend fun didCreate(name: String, value: String): Flow<Map<String, String>> {
         return callbackFlow {
-            socketService?.start(baseURL)
-            keyPair = KeyPair.Factory.sr25519().generate(phrase = seed)
-            val privateKey = keyPair?.privateKey
-            val publicKey = keyPair?.publicKey
-            val accountIdOwner = publicKey?.ss58?.accountId()
-            val accountAddressOwner = publicKey?.ss58?.address(type = 42)
+            if (socketService?.started() == false){
+                socketService?.start(url = baseURL)
+            }
+
+            val keyPair = KeyPair.Factory.sr25519().generate(phrase = seed)
+            val privateKey = keyPair.privateKey
+            val publicKey = keyPair.publicKey
+            val accountIdOwner = publicKey.ss58.accountId()
+            val accountAddressOwner = publicKey.ss58.address(type = 42)
             fetchRuntimeData()
             val genesisHash = fetchBlockHash(blockNumber = 0u)
-            val nonceOwner = fetchAccountNonce(accountAddressOwner!!)
+            val nonceOwner = fetchAccountNonce(accountAddressOwner)
             executeMortalEraOperation()
             val eraBlockHash = fetchBlockHash(blockNumber = eraBlockNumber?.toUInt() ?: 0u)
 
@@ -120,12 +125,12 @@ class Peaq(
                 ),
                 runtimeVersion = runTimeVersion!!,
                 genesisHash = genesisHash.fromHex(),
-                accountId = accountIdOwner!!,
+                accountId = accountIdOwner,
                 signer = KeyPairSigner(
                     keypair = Sr25519Keypair(
-                        keyPair!!.privateKey.copyOfRange(0, 32),
-                        keyPair!!.publicKey,
-                        nonce = keyPair!!.privateKey.copyOfRange(32, 64)
+                        keyPair.privateKey.copyOfRange(0, 32),
+                        keyPair.publicKey,
+                        nonce = keyPair.privateKey.copyOfRange(32, 64)
                     ),
                     encryption = MultiChainEncryption.Substrate(
                         EncryptionType.SR25519
@@ -158,7 +163,6 @@ class Peaq(
                     }
 
                     override fun onNext(response: SubscriptionChange) {
-                        Log.e("=== on subscription", "=== ${response.params.result}")
                         val resultInBlock = response.params.result as? Map<*, *> ?: notValidResult(
                             response.params.result,
                             "bestHeaderResult"
@@ -167,7 +171,7 @@ class Peaq(
                             trySend(mapOf("inBlock" to resultInBlock["inBlock"].toString())).isSuccess
                         } else if (resultInBlock["finalized"] != null) {
                             trySend(mapOf("finalized" to resultInBlock["finalized"].toString())).isSuccess
-
+                            close()
                         }
                     }
                 },
@@ -427,9 +431,17 @@ class Peaq(
         }
     }
 
+    /**
+     * Disconnect socketService
+     */
      fun disconnect(){
         socketService?.stop()
     }
+
+
+    /**
+     * CreateDidDocument
+     */
 
 
     suspend fun createDidDocument(
@@ -437,7 +449,7 @@ class Peaq(
         ownerAddress: String,
         machineAddress: String,
         machinePublicKey: ByteArray,
-        customData: String = ""
+        customData: List<CustomServiceData> = emptyList()
     ): String {
         val keyPair = KeyPair.Factory.sr25519().generate(phrase = issuerSeed)
         val issuerPublicKey = keyPair.publicKey
@@ -478,15 +490,16 @@ class Peaq(
         builder.addServices(docService.build())
 
         if (!customData.isNullOrEmpty()) {
-            val docServiceCustom = Service.newBuilder()
-            docServiceCustom.id = machineAddress
-            docServiceCustom.type = "custom_data"
-            docServiceCustom.data = customData
+            for (data in customData){
+                val docServiceCustom = Service.newBuilder()
+                docServiceCustom.id = data.id
+                docServiceCustom.type = data.type
+                docServiceCustom.data = data.data
 
-            builder.addServices(docServiceCustom.build())
+                builder.addServices(docServiceCustom.build())
+            }
+
         }
-
-
 
         val document = builder.build()
 
@@ -510,6 +523,130 @@ class Peaq(
             privateKey = privateKey,
             address = accountAddressOwner
         )
+    }
+
+     suspend fun signData(
+        plainData: String,
+        machineSeed: String,
+        format: com.silencio.peaq.utils.EncryptionType
+    ): String {
+        val originalData = plainData.toByteArray()
+        val keyPair: KeyPair
+        var sign: ByteArray? = null
+        when (format) {
+           com.silencio.peaq.utils.EncryptionType.SR25519 -> {
+                keyPair = KeyPair.Factory.sr25519().generate(phrase = machineSeed)
+                sign = keyPair.sign(originalData)
+
+            }
+            com.silencio.peaq.utils.EncryptionType.ED25519 -> {
+                keyPair = KeyPair.Factory.ed25519.generate(phrase = machineSeed)
+                sign = keyPair.sign(originalData)
+
+            }
+            else -> {
+                return "Invalid format"
+            }
+        }
+        if (sign != null) {
+            return sign.toHexString()
+        }
+        return ""
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    suspend fun verifySignatureData(
+        machinePublicKey: String,
+        plainData: String,
+        signature: String
+    ): Boolean {
+        val originalData = plainData.toByteArray()
+        var verify: Boolean = false
+
+        val sigData = signature.hexToByteArray()
+
+
+        val publicKey : ByteArray = machinePublicKey.hexToByteArray()
+        try {
+            verify = publicKey.sr25519dub().verify(originalData,sigData)
+        }catch (_ : Exception){
+            try {
+                verify = publicKey.ed25519.verify(originalData,sigData)
+            }catch (e : Exception){
+                Log.e("Exception","Exception ${e}")
+            }
+        }
+
+        return verify
+
+    }
+
+
+
+    suspend fun store(payloadData : String,itemType : String) {
+        if (socketService?.started() == false){
+            socketService?.start(url = baseURL)
+        }
+        val keyPair = KeyPair.Factory.sr25519().generate(phrase = seed)
+        val privateKey = keyPair.privateKey
+        val publicKey = keyPair.publicKey
+        val accountIdOwner = publicKey.ss58.accountId()
+        val accountAddressOwner = publicKey.ss58.address(type = 42)
+        fetchRuntimeData()
+        val genesisHash = fetchBlockHash(blockNumber = 0u)
+        val nonceOwner = fetchAccountNonce(accountAddressOwner)
+        executeMortalEraOperation()
+        val eraBlockHash = fetchBlockHash(blockNumber = eraBlockNumber?.toUInt() ?: 0u)
+
+        val builder = ExtrinsicBuilder(
+            runtime = RuntimeSnapshot(
+                catalog!!,
+                runtimeMetaData!!
+            ),
+            nonce = Nonce.singleTx(
+                nonceOwner.toInt().toBigInteger()
+            ),
+            runtimeVersion = runTimeVersion!!,
+            genesisHash = genesisHash.fromHex(),
+            accountId = accountIdOwner,
+            signer = KeyPairSigner(
+                keypair = Sr25519Keypair(
+                    keyPair.privateKey.copyOfRange(0, 32),
+                    keyPair.publicKey,
+                    nonce = keyPair.privateKey.copyOfRange(32, 64)
+                ),
+                encryption = MultiChainEncryption.Substrate(
+                    EncryptionType.SR25519
+                )
+            ),
+            blockHash = eraBlockHash.fromHex(),
+            era = extrinsicEra!!
+        )
+
+
+
+
+        val theMap = HashMap<String, Any>()
+        theMap["did_account"] = accountAddressOwner.ss58.accountId()
+
+        theMap["item_type"] = itemType.toByteArray()
+        theMap["item"] = payloadData.toByteArray()
+
+        builder.call(
+            moduleName = "PeaqStorage",
+            callName = "add_item",
+            arguments = theMap
+        )
+
+        val extrinsic = builder.build()
+
+        val store = socketService?.executeAsync(
+            RuntimeRequest(
+                method = "author_submitExtrinsic",
+                params = listOf(extrinsic)
+            )
+        )
+        Log.e("Store Data","Store Data ${store?.result}")
     }
 
 }

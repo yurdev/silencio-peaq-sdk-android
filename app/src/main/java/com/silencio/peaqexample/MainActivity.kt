@@ -4,7 +4,10 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.google.gson.Gson
 import com.silencio.peaq.Peaq
+import com.silencio.peaq.model.CustomServiceData
+import com.silencio.peaq.utils.EncryptionType
 import com.silencio.peaq.utils.PeaqUtils
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -14,9 +17,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val issuerSeed = "speed movie excess amateur tent envelope few raise egg large either antique"
+        val issuerSeed = "ADD_ISSUER_SEED_HERE"
         val peaqInstance = Peaq(
-            baseURL = "wss://wsspc1-qa.agung.peaq.network/",
+            baseURL = "ADD_SOCKET_BASE_URL_HERE",
             seed =  issuerSeed
         )
 
@@ -40,10 +43,15 @@ class MainActivity : AppCompatActivity() {
                 if (it.containsKey("inBlock")){
                     Log.e("Hash Key","Hash Key ${it["inBlock"]}")
                 }
-                if (it.containsKey("finalized")){
-                    peaqInstance.disconnect()
-                }
+
             }
+            val payloadData = CustomServiceData(id = machineAddress, type = "Custom_data", data = "a@gmail.com")
+            val payload = Gson().toJson(payloadData)
+            val payloadHex = peaqInstance.signData(payload,issuerSeed, format = EncryptionType.ED25519)
+            Log.e("PayLoadHex","PayLoadHex ${payloadHex}")
+
+            peaqInstance.store(payloadData = payloadHex , itemType = "113")
+            peaqInstance.disconnect()
         }
 
 
