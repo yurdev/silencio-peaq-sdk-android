@@ -70,5 +70,5 @@ class Sr25519(private val byteArray: ByteArray, private val label: String): Sign
 /**
  * An access point to sr25519 functionality
  */
-fun ByteArray.sr25519dub(label: String = DEFAULT_LABEL)
+fun ByteArray.sr25519Clone(label: String = DEFAULT_LABEL)
     = Sr25519(this, label)

@@ -6,17 +6,17 @@ plugins {
     id("org.jetbrains.dokka")
 //    id("io.github.gradle-nexus.publish-plugin")
 //    `maven-publish`
-    signing
+//    signing
 }
 
 group = "dev.sublab"
 version = "1.0.0"
 
-//repositories {
+repositories {
 //    mavenLocal()
 //    mavenCentral()
 //    maven { url = uri("https://repo.repsy.io/mvn/chrynan/public") } // Kotlin SecureRandom
-//}
+}
 
 val dokkaVersion: String by project
 val commonVersion: String by project
@@ -66,6 +66,7 @@ tasks.javadoc {
         (options as StandardJavadocDocletOptions).addBooleanOption("html5", true)
     }
 }
+
 //
 //publishing {
 //    publications {
@@ -106,7 +107,7 @@ tasks.javadoc {
 //        }
 //    }
 //}
-//
+
 //nexusPublishing {
 //    repositories {
 //        sonatype {

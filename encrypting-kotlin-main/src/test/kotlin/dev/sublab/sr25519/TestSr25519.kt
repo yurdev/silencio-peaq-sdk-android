@@ -37,13 +37,13 @@ internal class TestSr25519 {
     fun test() {
         val seed = "0xcfdd8f2503e043e9884997c6afcccd3bb30184f7c504de359ce3e591d4f8d853".hex.decode()
         val correctPublicKey = "0x003b6c9a114fb708a99b6fa6753e145f12cf62b9eba095d57a4237570e152f53".hex.decode()
-        val privateKey = seed.sr25519dub().loadPrivateKey()
-        val publicKey = privateKey.sr25519dub().publicKey()
+        val privateKey = seed.sr25519Clone().loadPrivateKey()
+        val publicKey = privateKey.sr25519Clone().publicKey()
         assertContentEquals(correctPublicKey, publicKey)
 
         for (testValue in testValues) {
-            val signature = privateKey.sr25519dub().sign(testValue)
-            val isValid = publicKey.sr25519dub().verify(testValue, signature)
+            val signature = privateKey.sr25519Clone().sign(testValue)
+            val isValid = publicKey.sr25519Clone().verify(testValue, signature)
             assertEquals(isValid, true)
         }
     }

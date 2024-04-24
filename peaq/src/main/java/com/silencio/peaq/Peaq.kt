@@ -16,7 +16,8 @@ import dev.sublab.ed25519.ed25519
 import dev.sublab.encrypting.keys.KeyPair
 import dev.sublab.hex.hex
 import dev.sublab.sr25519.sr25519
-import dev.sublab.sr25519.sr25519dub
+import dev.sublab.sr25519.sr25519Clone
+
 import dev.sublab.ss58.ss58
 import io.emeraldpay.polkaj.scale.ScaleCodecReader
 import io.peaq.did.Document
@@ -550,7 +551,7 @@ class Peaq(
 
         val publicKey : ByteArray = machinePublicKey.hexToByteArray()
         try {
-            verify = publicKey.sr25519dub().verify(originalData,sigData)
+            verify = publicKey.sr25519Clone().verify(originalData,sigData)
         }catch (_ : Exception){
             try {
                 verify = publicKey.ed25519.verify(originalData,sigData)

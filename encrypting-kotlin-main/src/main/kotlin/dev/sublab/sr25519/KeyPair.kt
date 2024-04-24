@@ -31,7 +31,7 @@ internal class Sr25519Keypair(
     private val label: String
 ): KeyPair() {
     override fun getSignatureEngine(byteArray: ByteArray)
-        = byteArray.sr25519dub(label)
+        = byteArray.sr25519Clone(label)
 }
 
 /**
@@ -40,10 +40,10 @@ internal class Sr25519Keypair(
  */
 fun KeyPair.Factory.sr25519(label: String = DEFAULT_LABEL) = object : KeyPairFactory {
     override val seedFactory get() = SubstrateSeedFactory()
-    override fun load(seedOrPrivateKey: ByteArray) = seedOrPrivateKey.sr25519dub(label).loadPrivateKey().let {
+    override fun load(seedOrPrivateKey: ByteArray) = seedOrPrivateKey.sr25519Clone(label).loadPrivateKey().let {
         Sr25519Keypair(
             it,
-            it.sr25519dub(label).publicKey(),
+            it.sr25519Clone(label).publicKey(),
             label
         )
     }
