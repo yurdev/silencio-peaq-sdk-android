@@ -5,7 +5,7 @@ import com.google.gson.Gson
 import com.google.gson.stream.JsonReader
 import com.neovisionaries.ws.client.WebSocketFactory
 import com.silencio.peaq.model.ConstantCodingPath
-import com.silencio.peaq.model.CustomServiceData
+import com.silencio.peaq.model.DIDDocumentCustomData
 import com.silencio.peaq.model.PublicKeyPrivateKeyAddressData
 import com.silencio.peaq.utils.LoggerImpl
 import com.silencio.peaq.utils.getResourceReader
@@ -47,7 +47,6 @@ import jp.co.soramitsu.fearless_utils.runtime.extrinsic.signer.KeyPairSigner
 import jp.co.soramitsu.fearless_utils.runtime.metadata.RuntimeMetadata
 import jp.co.soramitsu.fearless_utils.runtime.metadata.RuntimeMetadataReader
 import jp.co.soramitsu.fearless_utils.runtime.metadata.builder.VersionedRuntimeBuilder
-import jp.co.soramitsu.fearless_utils.runtime.metadata.module.Module
 import jp.co.soramitsu.fearless_utils.runtime.metadata.v14.RuntimeMetadataSchemaV14
 import jp.co.soramitsu.fearless_utils.wsrpc.SocketService
 import jp.co.soramitsu.fearless_utils.wsrpc.executeAsync
@@ -98,7 +97,7 @@ class Peaq(
         socketService?.start(baseURL)
     }
 
-    suspend fun didCreate(name: String, value: String): Flow<Map<String, String>> {
+    suspend fun createDid(name: String, value: String): Flow<Map<String, String>> {
         return callbackFlow {
             if (socketService?.started() == false){
                 socketService?.start(url = baseURL)
@@ -445,13 +444,12 @@ class Peaq(
 
 
     suspend fun createDidDocument(
-        issuerSeed: String,
         ownerAddress: String,
         machineAddress: String,
         machinePublicKey: ByteArray,
-        customData: List<CustomServiceData> = emptyList()
+        customData: List<DIDDocumentCustomData> = emptyList()
     ): String {
-        val keyPair = KeyPair.Factory.sr25519().generate(phrase = issuerSeed)
+        val keyPair = KeyPair.Factory.sr25519().generate(phrase = seed)
         val issuerPublicKey = keyPair.publicKey
         val issuerAddress = issuerPublicKey.ss58.address(42)
         val originalData = machineAddress.ss58.toString().toByteArray()
@@ -507,23 +505,7 @@ class Peaq(
         return document.toByteArray().toHexString()
     }
 
-    suspend fun generateMnemonicWord(): String {
-        return MnemonicCreator.randomMnemonic(Mnemonic.Length.TWELVE).words
-    }
 
-    suspend fun generatePublicKeyPrivateKeyAddress(mnemonicWord : String) : PublicKeyPrivateKeyAddressData {
-        val keyPair = KeyPair.Factory.sr25519().generate(phrase = mnemonicWord)
-        val privateKey = keyPair.privateKey
-        val publicKey = keyPair.publicKey
-
-        val accountIdOwner = publicKey.ss58.accountId()
-        val accountAddressOwner = publicKey.ss58.address(type = 42)
-        return PublicKeyPrivateKeyAddressData(
-            publicKey = publicKey,
-            privateKey = privateKey,
-            address = accountAddressOwner
-        )
-    }
 
      suspend fun signData(
         plainData: String,
@@ -555,7 +537,7 @@ class Peaq(
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    suspend fun verifySignatureData(
+    suspend fun verifyData(
         machinePublicKey: String,
         plainData: String,
         signature: String
@@ -583,7 +565,7 @@ class Peaq(
 
 
 
-    suspend fun store(payloadData : String,itemType : String) {
+    suspend fun storeMachineDataHash(payloadData : String, itemType : String) {
         if (socketService?.started() == false){
             socketService?.start(url = baseURL)
         }
@@ -648,5 +630,39 @@ class Peaq(
         )
         Log.e("Store Data","Store Data ${store?.result}")
     }
+
+
+    suspend fun generateMnemonicSeed(): String {
+        return MnemonicCreator.randomMnemonic(Mnemonic.Length.TWELVE).words
+    }
+
+    suspend fun getPublicPrivateKeyAddressFromMachineSeed(mnemonicWord : String) : PublicKeyPrivateKeyAddressData {
+        val keyPair = KeyPair.Factory.sr25519().generate(phrase = mnemonicWord)
+        val privateKey = keyPair.privateKey
+        val publicKey = keyPair.publicKey
+
+        val accountIdOwner = publicKey.ss58.accountId()
+        val accountAddressOwner = publicKey.ss58.address(type = 42)
+        return PublicKeyPrivateKeyAddressData(
+            publicKey = publicKey,
+            privateKey = privateKey,
+            address = accountAddressOwner
+        )
+    }
+
+    suspend fun getED25519PublicPrivateKeyAddressFromMachineSeed(mnemonicWord : String) : PublicKeyPrivateKeyAddressData {
+        val keyPair = KeyPair.Factory.ed25519.generate(phrase = mnemonicWord)
+        val privateKey = keyPair.privateKey
+        val publicKey = keyPair.publicKey
+
+        val accountIdOwner = publicKey.ss58.accountId()
+        val accountAddressOwner = publicKey.ss58.address(type = 42)
+        return PublicKeyPrivateKeyAddressData(
+            publicKey = publicKey,
+            privateKey = privateKey,
+            address = accountAddressOwner
+        )
+    }
+
 
 }
