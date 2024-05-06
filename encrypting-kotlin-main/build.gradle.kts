@@ -1,22 +1,17 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+// this import for publishing
+import com.vanniktech.maven.publish.SonatypeHost
+import com.vanniktech.maven.publish.KotlinJvm
 
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("org.jetbrains.dokka")
-//    id("io.github.gradle-nexus.publish-plugin")
-//    `maven-publish`
-//    signing
+    // this is for publishing
+    id("com.vanniktech.maven.publish")
 }
 
-group = "dev.sublab"
-version = "1.0.0"
 
-repositories {
-//    mavenLocal()
-//    mavenCentral()
-//    maven { url = uri("https://repo.repsy.io/mvn/chrynan/public") } // Kotlin SecureRandom
-}
 
 val dokkaVersion: String by project
 val commonVersion: String by project
@@ -67,60 +62,50 @@ tasks.javadoc {
     }
 }
 
-//
-//publishing {
-//    publications {
-//        register("mavenJava", MavenPublication::class) {
-//            groupId = groupId
-//            artifactId = rootProject.name
-//            version = version
-//
-//            from(components["java"])
-//            artifact(sourcesJar.get())
-//            artifact(javadocJar.get())
-//
-//            pom {
-//                name.set(rootProject.name)
-//                description.set("Sublab's Common Kotlin library")
-//                url.set("https://github.com/sublabdev/${rootProject.name}")
-//                licenses {
-//                    license {
-//                        name.set("Apache 2.0")
-//                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-//                        distribution.set("repo")
-//                    }
-//                }
-//                developers {
-//                    developer {
-//                        name.set("Sublab")
-//                        email.set("info@sublab.dev")
-//                        organization.set("Substrate Laboratory LLC")
-//                        organizationUrl.set("https://sublab.dev")
-//                    }
-//                }
-//                scm {
-//                    connection.set("scm:git:https://github.com/sublabdev/${rootProject.name}.git")
-//                    developerConnection.set("scm:git:https://github.com/sublabdev/${rootProject.name}.git")
-//                    url.set("https://github.com/sublabdev/${rootProject.name}")
-//                }
-//            }
-//        }
-//    }
-//}
 
-//nexusPublishing {
-//    repositories {
-//        sonatype {
-//            packageGroup.set("dev.sublab")
-//            username.set(extra.get("ossrhUsername") as? String)
-//            password.set(extra.get("ossrhPassword") as? String)
-//            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-//            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
-//        }
-//    }
-//}
-//
-//signing {
-//    useGpgCmd()
-//    sign(publishing.publications["mavenJava"])
-//}
+mavenPublishing {
+    configure(KotlinJvm(
+        // configures the -javadoc artifact, possible values:
+        // - `JavadocJar.None()` don't publish this artifact
+        // - `JavadocJar.Empty()` publish an emprt jar
+        // - `JavadocJar.Dokka("dokkaHtml")` when using Kotlin with Dokka, where `dokkaHtml` is the name of the Dokka task that should be used as input
+//        javadocJar = JavadocJar.Dokka("dokkaHtml"),
+        // whether to publish a sources jar
+        sourcesJar = true,
+    ))
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL,true)
+
+
+    signAllPublications()
+
+    coordinates("store.silencio", "encrypting-kotlin-main", "1.0.3")
+
+    pom {
+
+
+        name = "Silencio encrypting-kotlin-main"
+        description = ""
+        inceptionYear = "2024"
+        url = "https://github.com/SilencioNetwork/SilencioPeaq.Android/"
+        licenses {
+            license {
+                name = "The Apache License, Version 2.0"
+                url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                distribution = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+            }
+        }
+        developers {
+            developer {
+                id = "SilencioNetwork"
+                name = "SilencioNetwork"
+                url = "https://github.com/SilencioNetwork"
+            }
+        }
+        scm {
+            url = "https://github.com/SilencioNetwork/SilencioPeaq.Android/"
+            connection = "scm:git:git://github.com/SilencioNetwork/SilencioPeaq.Android.git"
+            developerConnection = "scm:git:ssh://git@github.com:SilencioNetwork/SilencioPeaq.Android.git"
+        }
+
+    }
+}

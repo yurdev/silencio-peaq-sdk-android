@@ -8,6 +8,7 @@ import com.silencio.peaq.model.ConstantCodingPath
 import com.silencio.peaq.model.DIDDocumentCustomData
 import com.silencio.peaq.model.PublicKeyPrivateKeyAddressData
 import com.silencio.peaq.utils.LoggerImpl
+import com.silencio.peaq.utils.LoggerMode
 import com.silencio.peaq.utils.getResourceReader
 import com.silencio.peaq.utils.notValidResult
 import dev.sublab.common.numerics.UInt32
@@ -79,13 +80,14 @@ class Peaq(
     private var eraBlockNumber: ULong? = null
     private var extrinsicEra: Era.Mortal? = null
 
+    private val logger = LoggerImpl()
 
     init {
         val reconnector = Reconnector()
         val requestExecutor = RequestExecutor()
         socketService = SocketService(
             Gson(),
-            LoggerImpl(),
+            logger,
             WebSocketFactory(),
             reconnector,
             requestExecutor
@@ -98,13 +100,13 @@ class Peaq(
         socketService?.start(baseURL)
     }
 
-    suspend fun createDid(name: String, value: String): Flow<Map<String, String>> {
+    suspend fun createDid(secretPhrase : String,name: String, value: String): Flow<Map<String, String>> {
         return callbackFlow {
             if (socketService?.started() == false){
                 socketService?.start(url = baseURL)
             }
 
-            val keyPair = KeyPair.Factory.sr25519().generate(phrase = seed)
+            val keyPair = KeyPair.Factory.sr25519().generate(phrase = secretPhrase)
             val privateKey = keyPair.privateKey
             val publicKey = keyPair.publicKey
             val accountIdOwner = publicKey.ss58.accountId()
@@ -181,8 +183,10 @@ class Peaq(
                 disconnect()
             }
         }
+    }
 
-
+    fun setLoggerMode(mode: LoggerMode){
+        logger.setMode(mode)
     }
 
     @OptIn(ExperimentalStdlibApi::class)

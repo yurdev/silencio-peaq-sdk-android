@@ -9,6 +9,8 @@
 plugins {
     // Apply the java-library plugin for API and implementation separation.
     id 'java-library'
+    // thi is for publishing
+    id("com.vanniktech.maven.publish")
 }
 
 //repositories {
@@ -40,5 +42,58 @@ testing {
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+// import for publishing
+import com.vanniktech.maven.publish.JavaLibrary
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.SonatypeHost
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+
+mavenPublishing {
+//    configure(KotlinJvm(
+//            // configures the -javadoc artifact, possible values:
+//            // - `JavadocJar.None()` don't publish this artifact
+//            // - `JavadocJar.Empty()` publish an emprt jar
+//            // - `JavadocJar.Dokka("dokkaHtml")` when using Kotlin with Dokka, where `dokkaHtml` is the name of the Dokka task that should be used as input
+////        javadocJar = JavadocJar.Dokka("dokkaHtml"),
+//            // whether to publish a sources jar
+////            sourcesJar = true,
+//    ))
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL,true)
+
+
+    signAllPublications()
+
+    coordinates("store.silencio", "lib", "1.0.3")
+
+    pom {
+
+
+        name = "Silencio lib"
+        description = ""
+        inceptionYear = "2024"
+        url = "https://github.com/SilencioNetwork/SilencioPeaq.Android/"
+        licenses {
+            license {
+                name = "The Apache License, Version 2.0"
+                url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                distribution = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+            }
+        }
+        developers {
+            developer {
+                id = "SilencioNetwork"
+                name = "SilencioNetwork"
+                url = "https://github.com/SilencioNetwork"
+            }
+        }
+        scm {
+            url = "https://github.com/SilencioNetwork/SilencioPeaq.Android/"
+            connection = "scm:git:git://github.com/SilencioNetwork/SilencioPeaq.Android.git"
+            developerConnection = "scm:git:ssh://git@github.com:SilencioNetwork/SilencioPeaq.Android.git"
+        }
+
     }
 }

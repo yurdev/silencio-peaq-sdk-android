@@ -36,7 +36,7 @@ class MainActivity : AppCompatActivity() {
                 machineAddress = machineAddress,
                 machinePublicKey = machinePublicKey
             )
-           val map =  peaqInstance.createDid(name ="did:peaq:$machineAddress" , value = document)
+           val map =  peaqInstance.createDid(secretPhrase = machineSeed, name ="did:peaq:$machineAddress" , value = document)
             map.collectLatest {
                 if (it.containsKey("inBlock")){
                     Log.e("Hash Key","Hash Key ${it["inBlock"]}")
