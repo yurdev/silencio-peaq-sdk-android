@@ -6,9 +6,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.gson.Gson
 import com.silencio.peaq.Peaq
+import com.silencio.peaq.model.DIDData
 import com.silencio.peaq.model.DIDDocumentCustomData
 import com.silencio.peaq.utils.EncryptionType
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -38,11 +40,16 @@ class MainActivity : AppCompatActivity() {
             )
            val map =  peaqInstance.createDid(secretPhrase = machineSeed, name ="did:peaq:$machineAddress" , value = document)
             map.collectLatest {
-                if (it.containsKey("inBlock")){
-                    Log.e("Hash Key","Hash Key ${it["inBlock"]}")
+                if (it.inBlock != null){
+                    Log.e("Hash Key","Hash Key ${it.inBlock}")
+                }
+                if (it.error != null){
+                    Log.e("Error","Error ${it.error}")
                 }
 
             }
+
+
             val payloadData = DIDDocumentCustomData(id = machineAddress, type = "Custom_data", data = "a@gmail.com")
             val payload = Gson().toJson(payloadData)
             val payloadHex = peaqInstance.signData(payload,issuerSeed, format = EncryptionType.ED25519)

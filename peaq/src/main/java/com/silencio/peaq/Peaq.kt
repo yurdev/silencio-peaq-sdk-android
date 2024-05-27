@@ -5,6 +5,7 @@ import com.google.gson.Gson
 import com.google.gson.stream.JsonReader
 import com.neovisionaries.ws.client.WebSocketFactory
 import com.silencio.peaq.model.ConstantCodingPath
+import com.silencio.peaq.model.DIDData
 import com.silencio.peaq.model.DIDDocumentCustomData
 import com.silencio.peaq.model.PublicKeyPrivateKeyAddressData
 import com.silencio.peaq.utils.LoggerImpl
@@ -100,7 +101,7 @@ class Peaq(
         socketService?.start(baseURL)
     }
 
-    suspend fun createDid(secretPhrase : String,name: String, value: String): Flow<Map<String, String>> {
+    suspend fun createDid(secretPhrase : String,name: String, value: String): Flow<DIDData> {
         return callbackFlow {
             if (socketService?.started() == false){
                 socketService?.start(url = baseURL)
@@ -161,7 +162,7 @@ class Peaq(
                 ),
                 object : SocketService.ResponseListener<SubscriptionChange> {
                     override fun onError(throwable: Throwable) {
-
+                        trySend(DIDData(error = throwable.message.toString())).isSuccess
                     }
 
                     override fun onNext(response: SubscriptionChange) {
@@ -170,9 +171,9 @@ class Peaq(
                             "bestHeaderResult"
                         )
                         if (resultInBlock["inBlock"] != null) {
-                            trySend(mapOf("inBlock" to resultInBlock["inBlock"].toString())).isSuccess
+                            trySend(DIDData(inBlock = resultInBlock["inBlock"].toString())).isSuccess
                         } else if (resultInBlock["finalized"] != null) {
-                            trySend(mapOf("finalized" to resultInBlock["finalized"].toString())).isSuccess
+                            trySend(DIDData(finalized = resultInBlock["finalized"].toString())).isSuccess
                             close()
                         }
                     }
