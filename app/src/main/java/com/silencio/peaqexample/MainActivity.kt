@@ -50,12 +50,19 @@ class MainActivity : AppCompatActivity() {
             }
 
 
-            val payloadData = DIDDocumentCustomData(id = machineAddress, type = "Custom_data", data = "a@gmail.com")
+            val payloadData = DIDDocumentCustomData(id = "machineAddress", type = "Custom_data", data = "a@gmail.com")
             val payload = Gson().toJson(payloadData)
             val payloadHex = peaqInstance.signData(payload,issuerSeed, format = EncryptionType.ED25519)
+
             Log.e("PayLoadHex","PayLoadHex ${payloadHex}")
 
-            peaqInstance.storeMachineDataHash(payloadData = payloadHex , itemType = "113")
+           val store = peaqInstance.storeMachineDataHash(payloadData = payloadHex , itemType = "peaq_123")
+            if (store?.error != null){
+                Log.e("Store Error","Store Error  ${store.error?.code}  ${store.error?.code}" )
+            }
+            if (store?.result != null){
+                Log.e("Store Result","Store Result ${store.result.toString()}")
+            }
             peaqInstance.disconnect()
         }
 

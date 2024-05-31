@@ -571,7 +571,7 @@ class Peaq(
 
 
 
-    suspend fun storeMachineDataHash(payloadData : String, itemType : String) {
+    suspend fun storeMachineDataHash(payloadData : String, itemType : String) : RpcResponse? {
         if (socketService?.started() == false){
             socketService?.start(url = baseURL)
         }
@@ -634,7 +634,7 @@ class Peaq(
                 params = listOf(extrinsic)
             )
         )
-        Log.e("Store Data","Store Data ${store?.result}")
+        return store
     }
 
 
