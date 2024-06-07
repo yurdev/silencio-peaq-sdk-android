@@ -56,9 +56,9 @@ class MainActivity : AppCompatActivity() {
 
             Log.e("PayLoadHex","PayLoadHex ${payloadHex}")
 
-           val store = peaqInstance.storeMachineDataHash(payloadData = payloadHex , itemType = "peaq_123")
+           val store = peaqInstance.storeMachineDataHash(payloadData = payloadHex , itemType = "peaq_123", machineSeed = machineSeed)
             if (store?.error != null){
-                Log.e("Store Error","Store Error  ${store.error?.code}  ${store.error?.code}" )
+                Log.e("Store Error","Store Error  ${store.error?.code}  ${store.error?.message}" )
             }
             if (store?.result != null){
                 Log.e("Store Result","Store Result ${store.result.toString()}")

@@ -571,11 +571,11 @@ class Peaq(
 
 
 
-    suspend fun storeMachineDataHash(payloadData : String, itemType : String) : RpcResponse? {
+    suspend fun storeMachineDataHash(payloadData : String, itemType : String,machineSeed: String) : RpcResponse? {
         if (socketService?.started() == false){
             socketService?.start(url = baseURL)
         }
-        val keyPair = KeyPair.Factory.sr25519().generate(phrase = seed)
+        val keyPair = KeyPair.Factory.sr25519().generate(phrase = machineSeed)
         val privateKey = keyPair.privateKey
         val publicKey = keyPair.publicKey
         val accountIdOwner = publicKey.ss58.accountId()
