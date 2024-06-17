@@ -78,7 +78,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates("store.silencio", "encrypting-kotlin-main", "1.0.6")
+    coordinates("store.silencio", "encrypting-kotlin-main", "1.0.7")
 
     pom {
 

@@ -454,7 +454,7 @@ class Peaq(
         machineAddress: String,
         machinePublicKey: ByteArray,
         customData: List<DIDDocumentCustomData> = emptyList()
-    ): String {
+    ): Document {
         val keyPair = KeyPair.Factory.sr25519().generate(phrase = seed)
         val issuerPublicKey = keyPair.publicKey
         val issuerAddress = issuerPublicKey.ss58.address(42)
@@ -507,8 +507,7 @@ class Peaq(
 
         val document = builder.build()
 
-
-        return document.toByteArray().toHexString()
+        return document
     }
 
 
