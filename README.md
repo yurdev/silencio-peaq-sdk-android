@@ -1,5 +1,10 @@
 # SilencioPeaq.Android
 
+
+```groovy
+implementation('store.silencio:peaq:1.0.8')
+```
+
 ## Project Configuration
 
 Update your `settings.gradle` to manage dependencies as follows:
