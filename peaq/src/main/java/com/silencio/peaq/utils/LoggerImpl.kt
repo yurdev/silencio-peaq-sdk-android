@@ -1,7 +1,7 @@
 package com.silencio.peaq.utils
 
 import android.util.Log
-import jp.co.soramitsu.fearless_utils.wsrpc.logging.Logger
+import io.novasama.substrate_sdk_android.wsrpc.logging.Logger
 
 class LoggerImpl : Logger {
 
