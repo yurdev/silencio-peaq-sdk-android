@@ -2,7 +2,6 @@
 
 ## Project Configuration
 
-
 Update your `settings.gradle` to manage dependencies as follows:
 
 ```groovy
@@ -26,3 +25,9 @@ val peaqInstance = Peaq(
     baseURL = "ADD_BASE_URL_ACCORDINGLY", // Replace with the actual base URL
     seed = issuerSeed
 )
+```
+If needed Please add below line in Manifest
+
+```kotlin
+        tools:replace="android:theme"
+```
