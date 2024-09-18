@@ -35,7 +35,6 @@ android {
 }
 
 dependencies {
-   // api 'dev.sublab:encrypting-kotlin:1.0.0'
 
     api 'androidx.core:core-ktx:1.12.0'
     api 'androidx.appcompat:appcompat:1.6.1'
@@ -57,7 +56,6 @@ dependencies {
     api 'com.neovisionaries:nv-websocket-client:2.14'
     api 'com.google.code.gson:gson:2.10.1'
 
-
     //for protobuf in didDocument Create
     api 'com.google.protobuf:protobuf-java:3.21.7'
     api 'com.google.protobuf:protobuf-kotlin:3.21.7'
@@ -73,7 +71,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates("store.silencio", "peaq", "1.0.8")
+    coordinates("store.silencio", "peaq", "1.0.10")
 
     pom {
 

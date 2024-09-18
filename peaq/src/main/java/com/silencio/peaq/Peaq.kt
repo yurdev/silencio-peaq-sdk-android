@@ -22,16 +22,15 @@ import dev.sublab.sr25519.sr25519Clone
 
 import dev.sublab.ss58.ss58
 import io.emeraldpay.polkaj.scale.ScaleCodecReader
-import io.novasama.substrate_sdk_android.encrypt.EncryptionType
-import io.novasama.substrate_sdk_android.encrypt.mnemonic.Mnemonic
 import io.peaq.did.Document
 import io.peaq.did.Service
 import io.peaq.did.Signature
 import io.peaq.did.VerificationMethod
 import io.peaq.did.VerificationType
+import io.novasama.substrate_sdk_android.encrypt.EncryptionType
 import io.novasama.substrate_sdk_android.encrypt.MultiChainEncryption
 import io.novasama.substrate_sdk_android.encrypt.keypair.substrate.Sr25519Keypair
-
+import io.novasama.substrate_sdk_android.encrypt.mnemonic.Mnemonic
 import io.novasama.substrate_sdk_android.encrypt.mnemonic.MnemonicCreator
 import io.novasama.substrate_sdk_android.extensions.fromHex
 import io.novasama.substrate_sdk_android.extensions.requirePrefix
@@ -70,7 +69,7 @@ import kotlin.math.min
 
 class Peaq(
     private val baseURL: String,
-    private val seed: String
+    private val seed: String?
 ) {
     private var socketService: SocketService? = null
     private var runTimeVersion: RuntimeVersion? = null
@@ -102,9 +101,9 @@ class Peaq(
         socketService?.start(baseURL)
     }
 
-    suspend fun createDid(secretPhrase : String,name: String, value: String): Flow<DIDData> {
+    suspend fun createDid(secretPhrase: String, name: String, value: String): Flow<DIDData> {
         return callbackFlow {
-            if (socketService?.started() == false){
+            if (socketService?.started() == false) {
                 socketService?.start(url = baseURL)
             }
 
@@ -187,7 +186,7 @@ class Peaq(
         }
     }
 
-    fun setLoggerMode(mode: LoggerMode){
+    fun setLoggerMode(mode: LoggerMode) {
         logger.setMode(mode)
     }
 
@@ -440,7 +439,7 @@ class Peaq(
     /**
      * Disconnect socketService
      */
-     fun disconnect(){
+    fun disconnect() {
         socketService?.stop()
     }
 
@@ -456,123 +455,76 @@ class Peaq(
         machinePublicKey: ByteArray,
         customData: List<DIDDocumentCustomData> = emptyList()
     ): Document {
-        val keyPair = KeyPair.Factory.sr25519().generate(phrase = seed)
-        val issuerPublicKey = keyPair.publicKey
-        val issuerAddress = issuerPublicKey.ss58.address(42)
-        val originalData = machineAddress.ss58.toString().toByteArray()
-        val signature = keyPair.sign(originalData)
-        val builder = Document.newBuilder()
+        if (!seed.isNullOrEmpty() && seed.isNotBlank()){
+            val keyPair = KeyPair.Factory.sr25519().generate(phrase = seed)
+            val issuerPublicKey = keyPair.publicKey
+            val issuerAddress = issuerPublicKey.ss58.address(42)
+            val originalData = machineAddress.ss58.toString().toByteArray()
+            val signature = keyPair.sign(originalData)
+            val builder = Document.newBuilder()
 
-        builder.id = "did:peaq:${machineAddress}"
-        builder.controller = "did:peaq:${issuerAddress}"
+            builder.id = "did:peaq:${machineAddress}"
+            builder.controller = "did:peaq:${issuerAddress}"
 
-        val docVerificationMethod =
-            VerificationMethod.newBuilder().setType(VerificationType.Sr25519VerificationKey2020)
-                .setId(machinePublicKey.ss58.toString().toByteArray().toHexString())
-                .setController("did:peaq:${issuerAddress}")
-                .setPublicKeyMultibase(machineAddress)
+            val docVerificationMethod =
+                VerificationMethod.newBuilder().setType(VerificationType.Sr25519VerificationKey2020)
+                    .setId(machinePublicKey.ss58.toString().toByteArray().toHexString())
+                    .setController("did:peaq:${issuerAddress}")
+                    .setPublicKeyMultibase(machinePublicKey.toHexString())
 
-        builder.addVerificationMethods(docVerificationMethod.build())
+            builder.addVerificationMethods(docVerificationMethod.build())
 
-        val docSignature = Signature.newBuilder().setIssuer(issuerAddress)
-            .setType(VerificationType.Sr25519VerificationKey2020).setHash(signature.toHexString())
-            .build()
-
-
-        builder.signature = docSignature
+            val docSignature = Signature.newBuilder().setIssuer(issuerAddress)
+                .setType(VerificationType.Sr25519VerificationKey2020).setHash(signature.toHexString())
+                .build()
 
 
-        builder.addAllAuthentications(
-            mutableListOf(
-                machinePublicKey.ss58.toString().toByteArray().toHexString()
+            builder.signature = docSignature
+
+
+            builder.addAllAuthentications(
+                mutableListOf(
+                    machinePublicKey.ss58.toString().toByteArray().toHexString()
+                )
             )
-        )
 
-        val docService = Service.newBuilder()
-        docService.id = "owner"
-        docService.type = "owner"
-        docService.data = ownerAddress
-        builder.addServices(docService.build())
+            val docService = Service.newBuilder()
+            docService.id = "owner"
+            docService.type = "owner"
+            docService.data = ownerAddress
+            builder.addServices(docService.build())
 
-        if (!customData.isNullOrEmpty()) {
-            for (data in customData){
-                val docServiceCustom = Service.newBuilder()
-                docServiceCustom.id = data.id
-                docServiceCustom.type = data.type
-                docServiceCustom.data = data.data
+            if (!customData.isNullOrEmpty()) {
+                for (data in customData) {
+                    val docServiceCustom = Service.newBuilder()
+                    docServiceCustom.id = data.id
+                    docServiceCustom.type = data.type
+                    docServiceCustom.data = data.data
 
-                builder.addServices(docServiceCustom.build())
+                    builder.addServices(docServiceCustom.build())
+                }
+
             }
 
+            val document = builder.build()
+
+            return document
+        }else {
+            return Document.newBuilder().build()
         }
-
-        val document = builder.build()
-
-        return document
-    }
-
-
-
-     suspend fun signData(
-        plainData: String,
-        machineSeed: String,
-        format: com.silencio.peaq.utils.EncryptionType
-    ): String {
-        val originalData = plainData.toByteArray()
-        val keyPair: KeyPair
-        var sign: ByteArray? = null
-        when (format) {
-           com.silencio.peaq.utils.EncryptionType.SR25519 -> {
-                keyPair = KeyPair.Factory.sr25519().generate(phrase = machineSeed)
-                sign = keyPair.sign(originalData)
-
-            }
-            com.silencio.peaq.utils.EncryptionType.ED25519 -> {
-                keyPair = KeyPair.Factory.ed25519.generate(phrase = machineSeed)
-                sign = keyPair.sign(originalData)
-
-            }
-            else -> {
-                return "Invalid format"
-            }
-        }
-        if (sign != null) {
-            return sign.toHexString()
-        }
-        return ""
-    }
-
-    @OptIn(ExperimentalStdlibApi::class)
-    suspend fun verifyData(
-        machinePublicKey: String,
-        plainData: String,
-        signature: String
-    ): Boolean {
-        val originalData = plainData.toByteArray()
-        var verify: Boolean = false
-
-        val sigData = signature.hexToByteArray()
-
-
-        val publicKey : ByteArray = machinePublicKey.hexToByteArray()
-        try {
-            verify = publicKey.sr25519Clone().verify(originalData,sigData)
-        }catch (_ : Exception){
-            try {
-                verify = publicKey.ed25519.verify(originalData,sigData)
-            }catch (e : Exception){
-                Log.e("Exception","Exception ${e}")
-            }
-        }
-
-        return verify
 
     }
 
 
 
-    suspend fun storeMachineDataHash(payloadData : String, itemType : String,machineSeed: String) : RpcResponse? {
-        if (socketService?.started() == false){
+
+
+    suspend fun storeMachineDataHash(
+        payloadData: String,
+        itemType: String,
+        machineSeed: String
+    ): RpcResponse? {
+        if (socketService?.started() == false) {
             socketService?.start(url = baseURL)
         }
         val keyPair = KeyPair.Factory.sr25519().generate(phrase = machineSeed)
@@ -612,8 +564,6 @@ class Peaq(
         )
 
 
-
-
         val theMap = HashMap<String, Any>()
         theMap["did_account"] = accountAddressOwner.ss58.accountId()
 
@@ -638,37 +588,11 @@ class Peaq(
     }
 
 
-    suspend fun generateMnemonicSeed(): String {
-        return MnemonicCreator.randomMnemonic(Mnemonic.Length.TWELVE).words
-    }
 
-    suspend fun getPublicPrivateKeyAddressFromMachineSeed(mnemonicWord : String) : PublicKeyPrivateKeyAddressData {
-        val keyPair = KeyPair.Factory.sr25519().generate(phrase = mnemonicWord)
-        val privateKey = keyPair.privateKey
-        val publicKey = keyPair.publicKey
 
-        val accountIdOwner = publicKey.ss58.accountId()
-        val accountAddressOwner = publicKey.ss58.address(type = 42)
-        return PublicKeyPrivateKeyAddressData(
-            publicKey = publicKey,
-            privateKey = privateKey,
-            address = accountAddressOwner
-        )
-    }
 
-    suspend fun getED25519PublicPrivateKeyAddressFromMachineSeed(mnemonicWord : String) : PublicKeyPrivateKeyAddressData {
-        val keyPair = KeyPair.Factory.ed25519.generate(phrase = mnemonicWord)
-        val privateKey = keyPair.privateKey
-        val publicKey = keyPair.publicKey
 
-        val accountIdOwner = publicKey.ss58.accountId()
-        val accountAddressOwner = publicKey.ss58.address(type = 42)
-        return PublicKeyPrivateKeyAddressData(
-            publicKey = publicKey,
-            privateKey = privateKey,
-            address = accountAddressOwner
-        )
-    }
+
 
 
 }

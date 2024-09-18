@@ -6,10 +6,17 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.gson.Gson
 import com.silencio.peaq.Peaq
+import com.silencio.peaq.model.DIDData
 import com.silencio.peaq.model.DIDDocumentCustomData
 import com.silencio.peaq.utils.EncryptionType
+import com.silencio.peaq.utils.PeaqUtils
+import io.peaq.did.Document
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
+import java.lang.Integer.parseInt
+import java.nio.charset.Charset
+
 
 class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalStdlibApi::class)
@@ -19,22 +26,22 @@ class MainActivity : AppCompatActivity() {
 
         val issuerSeed = "ADD_ISSUER_SEED_HERE"
         val peaqInstance = Peaq(
-            baseURL =  "ADD_BASE_URL_ACCORDINGLY",
+            baseURL = "ADD_SOCKET_BASE_URL_HERE",
             seed =  issuerSeed
         )
 
         lifecycleScope.launch {
-            val (issuerPublicKey, issuerPrivateKey, issuerAddress) = peaqInstance.getPublicPrivateKeyAddressFromMachineSeed(
+            val (issuerPublicKey, issuerPrivateKey, issuerAddress) = PeaqUtils.getPublicPrivateKeyAddressFromMachineSeed(
                 mnemonicWord = issuerSeed
             )
 
-            val ownerSeed = peaqInstance.generateMnemonicSeed()
-            val (ownerPublicKey, ownerPrivateKey, ownerAddress) = peaqInstance.getPublicPrivateKeyAddressFromMachineSeed(
+            val ownerSeed = PeaqUtils.generateMnemonicSeed()
+            val (ownerPublicKey, ownerPrivateKey, ownerAddress) = PeaqUtils.getPublicPrivateKeyAddressFromMachineSeed(
                 mnemonicWord = ownerSeed
             )
 
-            val machineSeed = peaqInstance.generateMnemonicSeed()
-            val (machinePublicKey, machinePrivateKey, machineAddress) = peaqInstance.getPublicPrivateKeyAddressFromMachineSeed(
+            val machineSeed = PeaqUtils.generateMnemonicSeed()
+            val (machinePublicKey, machinePrivateKey, machineAddress) = PeaqUtils.getPublicPrivateKeyAddressFromMachineSeed(
                 mnemonicWord = machineSeed
             )
 
@@ -43,6 +50,16 @@ class MainActivity : AppCompatActivity() {
                 machineAddress = machineAddress,
                 machinePublicKey = machinePublicKey
             )
+            /**
+             * use this when you don't have issuer seed to generate didDocument
+                val documentWithoutSeed = peaqInstance.createDidDocumentWithoutSeed(
+                    issuerAddress = issuerAddress,
+                    ownerAddress = ownerAddress,
+                    machineAddress = machineAddress,
+                    machinePublicKey = machinePublicKey,
+                    signature = "ADD_YOUR_SIGNATURE_WHICH_SIGN_BY_YOUR_ISSUER"
+                )
+            */
             Log.e("Document", "Document : ${document}")
             val map = peaqInstance.createDid(
                 secretPhrase = machineSeed,
@@ -65,9 +82,8 @@ class MainActivity : AppCompatActivity() {
                 )
                 val payload = Gson().toJson(payloadData)
                 val payloadHex =
-                    peaqInstance.signData(payload, issuerSeed, format = EncryptionType.ED25519)
+                    PeaqUtils.signData(payload, issuerSeed, format = EncryptionType.ED25519)
 
-                Log.e("PayLoadHex", "PayLoadHex ${payloadHex}")
 
                 val store = peaqInstance.storeMachineDataHash(
                     payloadData = payloadHex,
