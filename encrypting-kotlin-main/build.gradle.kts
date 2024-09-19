@@ -78,7 +78,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates("store.silencio", "encrypting-kotlin-main", "1.0.10")
+    coordinates("store.silencio", "encrypting-kotlin-main", "1.0.11")
 
     pom {
 
@@ -86,7 +86,7 @@ mavenPublishing {
         name = "Silencio encrypting-kotlin-main"
         description = ""
         inceptionYear = "2024"
-        url = "https://github.com/SilencioNetwork/SilencioPeaq.Android/"
+        url = "https://github.com/Silencio-network/silencio-peaq-sdk-android/"
         licenses {
             license {
                 name = "The Apache License, Version 2.0"
@@ -98,13 +98,13 @@ mavenPublishing {
             developer {
                 id = "SilencioNetwork"
                 name = "SilencioNetwork"
-                url = "https://github.com/SilencioNetwork"
+                url = "https://github.com/Silencio-network"
             }
         }
         scm {
-            url = "https://github.com/SilencioNetwork/SilencioPeaq.Android/"
-            connection = "scm:git:git://github.com/SilencioNetwork/SilencioPeaq.Android.git"
-            developerConnection = "scm:git:ssh://git@github.com:SilencioNetwork/SilencioPeaq.Android.git"
+            url = "https://github.com/Silencio-network/silencio-peaq-sdk-android/"
+            connection = "scm:git:git://github.com/Silencio-network/silencio-peaq-sdk-android.git"
+            developerConnection = "scm:git:ssh://git@github.com:Silencio-network/silencio-peaq-sdk-android.git"
         }
 
     }
