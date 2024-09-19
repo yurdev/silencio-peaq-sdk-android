@@ -52,7 +52,7 @@ class MainActivity : AppCompatActivity() {
             )
             /**
              * use this when you don't have issuer seed to generate didDocument
-                val documentWithoutSeed = peaqInstance.createDidDocumentWithoutSeed(
+                val documentWithoutSeed = PeaqUtils.createDidDocumentWithoutSeed(
                     issuerAddress = issuerAddress,
                     ownerAddress = ownerAddress,
                     machineAddress = machineAddress,
