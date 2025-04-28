@@ -61,24 +61,33 @@ dependencies {
     api 'com.google.protobuf:protobuf-kotlin:3.21.7'
 
 }
-import com.vanniktech.maven.publish.SonatypeHost
-import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary // Assuming this import exists
 
 mavenPublishing {
+    // Configure WHAT artifact to publish (e.g., release variant of Android library)
+    // This part likely remains the same as you want to publish the same content.
     configure(new AndroidSingleVariantLibrary("release", true, true))
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL,true)
 
+    // 1. REMOVE or COMMENT OUT publishing to Maven Central:
+    // We are publishing locally, not to the central repository.
+    // publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, true) // << COMMENTED OUT / REMOVED
 
-    signAllPublications()
+    // 2. REMOVE or COMMENT OUT signing:
+    // Signing is typically required for Central repositories, but not needed for the local repo.
+    // It might also cause build failures locally if signing keys aren't configured.
+    // signAllPublications()
 
-    coordinates("store.silencio", "peaqsdk", "1.0.11")
+    // 3. MODIFY coordinates: Use a unique version for your local build!
+    coordinates("store.silencio", "peaqsdk", "1.0.11-LOCAL_v1")
 
+    // 4. KEEP POM configuration: Metadata is still useful locally.
+    // The POM details will be published alongside the JAR to ~/.m2/repository
+    // You might want to slightly adjust the name or description for clarity.
     pom {
-
-
-        name = "Silencio Peaq"
-        description = ""
-        inceptionYear = "2024"
+        name = "Silencio Peaq (Local Build with fix)"
+        description = "Locally modified build of Silencio Peaq SDK to fix (DivByZero)."
+        inceptionYear = "2025"
         url = "https://github.com/Silencio-network/silencio-peaq-sdk-android/"
         licenses {
             license {
@@ -99,7 +108,13 @@ mavenPublishing {
             connection = "scm:git:git://github.com/Silencio-network/silencio-peaq-sdk-android.git"
             developerConnection = "scm:git:ssh://git@github.com:Silencio-network/silencio-peaq-sdk-android.git"
         }
-
     }
-}
 
+    // 5. NOTE on executing the publish:
+    // To publish this configuration to your local ~/.m2/repository, run the
+    // following command in your terminal in this module's directory:
+    //
+    // ./gradlew :peaq:publishToMavenLocal
+    //
+    // (or add 'clean' for a fresh build: ./gradlew clean :peaq:publishToMavenLocal)
+}
