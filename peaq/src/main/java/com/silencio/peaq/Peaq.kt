@@ -240,7 +240,8 @@ class Peaq(
             RuntimeSnapshot(catalog!!, runtimeMetaData!!)
         )
 
-        val blockTime = minimumPeriod.toString().toULong()
+        var blockTime = minimumPeriod.toString().toULong()
+        if (blockTime == 0UL) blockTime = 6000U // Avoid DivByZero exception
 
         val unmappedPeriod = (mortalPeriod / blockTime) + maxFinalityLag.toULong()
         val mortalLength = min(blockHashCount.toString().toULong(), unmappedPeriod)
