@@ -588,6 +588,213 @@ class Peaq(
         return store
     }
 
+    // Method to remove an attribute from a DID document
+    suspend fun removeDidAttribute(secretPhrase: String, name: String): Flow<DIDData> {
+        return callbackFlow {
+            if (socketService?.started() == false) {
+                socketService?.start(url = baseURL)
+            }
+
+            val keyPair = KeyPair.Factory.sr25519().generate(phrase = secretPhrase)
+            val privateKey = keyPair.privateKey
+            val publicKey = keyPair.publicKey
+            val accountIdOwner = publicKey.ss58.accountId()
+            val accountAddressOwner = publicKey.ss58.address(type = 42)
+            fetchRuntimeData()
+            val genesisHash = fetchBlockHash(blockNumber = 0u)
+            val nonceOwner = fetchAccountNonce(accountAddressOwner)
+            executeMortalEraOperation()
+            val eraBlockHash = fetchBlockHash(blockNumber = eraBlockNumber?.toUInt() ?: 0u)
+
+            val builder = ExtrinsicBuilder(
+                runtime = RuntimeSnapshot(
+                    catalog!!,
+                    runtimeMetaData!!
+                ),
+                nonce = Nonce.singleTx(
+                    nonceOwner.toInt().toBigInteger()
+                ),
+                runtimeVersion = runTimeVersion!!,
+                genesisHash = genesisHash.fromHex(),
+                accountId = accountIdOwner,
+                signer = KeyPairSigner(
+                    keypair = Sr25519Keypair(
+                        keyPair.privateKey.copyOfRange(0, 32),
+                        keyPair.publicKey,
+                        nonce = keyPair.privateKey.copyOfRange(32, 64)
+                    ),
+                    encryption = MultiChainEncryption.Substrate(
+                        EncryptionType.SR25519
+                    )
+                ),
+                blockHash = eraBlockHash.fromHex(),
+                era = extrinsicEra!!
+            )
+
+            val theMap = HashMap<String, Any>()
+            theMap["did_account"] = accountAddressOwner.ss58.accountId()
+            theMap["name"] = name.toByteArray()
+            // Note: remove_attribute doesn't need a value parameter
+
+            builder.call(
+                moduleName = "PeaqDid",
+                callName = "remove_attribute",
+                arguments = theMap
+            )
+
+            val extrinsic = builder.build()
+            socketService?.subscribe(
+                RpcRequest.Rpc2(
+                    RuntimeRequest(
+                        method = "author_submitAndWatchExtrinsic",
+                        params = listOf(extrinsic)
+                    )
+                ),
+                object : SocketService.ResponseListener<SubscriptionChange> {
+                    override fun onError(throwable: Throwable) {
+                        trySend(DIDData(error = throwable.message.toString())).isSuccess
+                    }
+
+                    override fun onNext(response: SubscriptionChange) {
+                        val resultInBlock = response.params.result as? Map<*, *> ?: notValidResult(
+                            response.params.result,
+                            "bestHeaderResult"
+                        )
+                        if (resultInBlock["inBlock"] != null) {
+                            trySend(DIDData(inBlock = resultInBlock["inBlock"].toString())).isSuccess
+                        } else if (resultInBlock["finalized"] != null) {
+                            trySend(DIDData(finalized = resultInBlock["finalized"].toString())).isSuccess
+                            close()
+                        }
+                    }
+                },
+                ""
+            )
+            awaitClose {
+                disconnect()
+            }
+        }
+    }
+
+    suspend fun updateDidAttribute(secretPhrase: String, name: String, value: String): Flow<DIDData> {
+        return callbackFlow {
+            if (socketService?.started() == false) {
+                socketService?.start(url = baseURL)
+            }
+
+            val keyPair = KeyPair.Factory.sr25519().generate(phrase = secretPhrase)
+            val privateKey = keyPair.privateKey
+            val publicKey = keyPair.publicKey
+            val accountIdOwner = publicKey.ss58.accountId()
+            val accountAddressOwner = publicKey.ss58.address(type = 42)
+            fetchRuntimeData()
+            val genesisHash = fetchBlockHash(blockNumber = 0u)
+            val nonceOwner = fetchAccountNonce(accountAddressOwner)
+            executeMortalEraOperation()
+            val eraBlockHash = fetchBlockHash(blockNumber = eraBlockNumber?.toUInt() ?: 0u)
+
+            val builder = ExtrinsicBuilder(
+                runtime = RuntimeSnapshot(
+                    catalog!!,
+                    runtimeMetaData!!
+                ),
+                nonce = Nonce.singleTx(
+                    nonceOwner.toInt().toBigInteger()
+                ),
+                runtimeVersion = runTimeVersion!!,
+                genesisHash = genesisHash.fromHex(),
+                accountId = accountIdOwner,
+                signer = KeyPairSigner(
+                    keypair = Sr25519Keypair(
+                        keyPair.privateKey.copyOfRange(0, 32),
+                        keyPair.publicKey,
+                        nonce = keyPair.privateKey.copyOfRange(32, 64)
+                    ),
+                    encryption = MultiChainEncryption.Substrate(
+                        EncryptionType.SR25519
+                    )
+                ),
+                blockHash = eraBlockHash.fromHex(),
+                era = extrinsicEra!!
+            )
+
+            val theMap = HashMap<String, Any>()
+            theMap["did_account"] = accountAddressOwner.ss58.accountId()
+            theMap["name"] = name.toByteArray()
+            theMap["value"] = value.toByteArray()
+
+            builder.call(
+                moduleName = "PeaqDid",
+                callName = "update_attribute",
+                arguments = theMap
+            )
+
+            val extrinsic = builder.build()
+            socketService?.subscribe(
+                RpcRequest.Rpc2(
+                    RuntimeRequest(
+                        method = "author_submitAndWatchExtrinsic",
+                        params = listOf(extrinsic)
+                    )
+                ),
+                object : SocketService.ResponseListener<SubscriptionChange> {
+                    override fun onError(throwable: Throwable) {
+                        trySend(DIDData(error = throwable.message.toString())).isSuccess
+                    }
+
+                    override fun onNext(response: SubscriptionChange) {
+                        val resultInBlock = response.params.result as? Map<*, *> ?: notValidResult(
+                            response.params.result,
+                            "bestHeaderResult"
+                        )
+                        if (resultInBlock["inBlock"] != null) {
+                            trySend(DIDData(inBlock = resultInBlock["inBlock"].toString())).isSuccess
+                        } else if (resultInBlock["finalized"] != null) {
+                            trySend(DIDData(finalized = resultInBlock["finalized"].toString())).isSuccess
+                            close()
+                        }
+                    }
+                },
+                ""
+            )
+            awaitClose {
+                disconnect()
+            }
+        }
+    }
+
+    suspend fun checkTransactionStatus(txHash: String): String? {
+        try {
+            val result = socketService?.executeAsync(
+                RuntimeRequest(
+                    method = "author_queryExtrinsicStatus",
+                    params = listOf(txHash)
+                )
+            )
+
+            val status = result?.result as? Map<*, *> ?: return null
+
+            // Check for various status types
+            if (status["error"] != null) {
+                val error = status["error"] as? Map<*, *> ?: return "Unknown error"
+                return "Error: ${error["message"] ?: "Unknown"}"
+            }
+
+            if (status["inBlock"] != null) {
+                return "Success: In block ${status["inBlock"]}"
+            }
+
+            if (status["finalized"] != null) {
+                return "Success: Finalized in block ${status["finalized"]}"
+            }
+
+            return "Pending"
+        } catch (e: Exception) {
+            Log.e("Peaq", "Error checking transaction status: ${e.message}", e)
+            return "Exception: ${e.message}"
+        }
+    }
+
 
 
 
