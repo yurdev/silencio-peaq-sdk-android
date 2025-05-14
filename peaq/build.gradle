@@ -79,7 +79,7 @@ mavenPublishing {
     // signAllPublications()
 
     // 3. MODIFY coordinates: Use a unique version for your local build!
-    coordinates("store.silencio", "peaqsdk", "1.0.11-LOCAL_v2")
+    coordinates("store.silencio", "peaqsdk", "1.0.11-LOCAL_v3")
 
     // 4. KEEP POM configuration: Metadata is still useful locally.
     // The POM details will be published alongside the JAR to ~/.m2/repository
