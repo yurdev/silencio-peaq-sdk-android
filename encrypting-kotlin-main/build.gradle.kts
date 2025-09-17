@@ -16,7 +16,7 @@ plugins {
 val dokkaVersion: String by project
 val commonVersion: String by project
 val hashingVersion: String by project
-val sr25519Version: String by project
+val sr25519Version: String = "1.0.1" // from PeaqSdk 1.0.13 16 Sep 2025
 val eddsaVersion: String by project
 val web3jCryptoVersion: String by project
 val zcashBIP39Version: String by project
@@ -84,7 +84,7 @@ mavenPublishing {
 
 
         name = "Silencio encrypting-kotlin-main"
-        description = ""
+        description = "Silencio encrypting-kotlin-main"
         inceptionYear = "2024"
         url = "https://github.com/Silencio-network/silencio-peaq-sdk-android/"
         licenses {
