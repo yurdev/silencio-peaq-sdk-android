@@ -8,6 +8,7 @@ import com.silencio.peaq.model.ConstantCodingPath
 import com.silencio.peaq.model.DIDData
 import com.silencio.peaq.model.DIDDocumentCustomData
 import com.silencio.peaq.model.PublicKeyPrivateKeyAddressData
+import com.silencio.peaq.model.StorageData
 import com.silencio.peaq.utils.LoggerImpl
 import com.silencio.peaq.utils.LoggerMode
 import com.silencio.peaq.utils.getResourceReader
@@ -586,6 +587,98 @@ class Peaq(
             )
         )
         return store
+    }
+
+    // Flow-based version of storeMachineDataHash that watches for block inclusion
+    suspend fun storeMachineDataHashAndWatch(
+        payloadData: String,
+        itemType: String,
+        machineSeed: String
+    ): Flow<StorageData> {
+        return callbackFlow {
+            if (socketService?.started() == false) {
+                socketService?.start(url = baseURL)
+            }
+
+            val keyPair = KeyPair.Factory.sr25519().generate(phrase = machineSeed)
+            val privateKey = keyPair.privateKey
+            val publicKey = keyPair.publicKey
+            val accountIdOwner = publicKey.ss58.accountId()
+            val accountAddressOwner = publicKey.ss58.address(type = 42)
+            fetchRuntimeData()
+            val genesisHash = fetchBlockHash(blockNumber = 0u)
+            val nonceOwner = fetchAccountNonce(accountAddressOwner)
+            executeMortalEraOperation()
+            val eraBlockHash = fetchBlockHash(blockNumber = eraBlockNumber?.toUInt() ?: 0u)
+
+            val builder = ExtrinsicBuilder(
+                runtime = RuntimeSnapshot(
+                    catalog!!,
+                    runtimeMetaData!!
+                ),
+                nonce = Nonce.singleTx(
+                    nonceOwner.toInt().toBigInteger()
+                ),
+                runtimeVersion = runTimeVersion!!,
+                genesisHash = genesisHash.fromHex(),
+                accountId = accountIdOwner,
+                signer = KeyPairSigner(
+                    keypair = Sr25519Keypair(
+                        keyPair.privateKey.copyOfRange(0, 32),
+                        keyPair.publicKey,
+                        nonce = keyPair.privateKey.copyOfRange(32, 64)
+                    ),
+                    encryption = MultiChainEncryption.Substrate(
+                        EncryptionType.SR25519
+                    )
+                ),
+                blockHash = eraBlockHash.fromHex(),
+                era = extrinsicEra!!
+            )
+
+            val theMap = HashMap<String, Any>()
+            theMap["did_account"] = accountAddressOwner.ss58.accountId()
+            theMap["item_type"] = itemType.toByteArray()
+            theMap["item"] = payloadData.toByteArray()
+
+            builder.call(
+                moduleName = "PeaqStorage",
+                callName = "add_item",
+                arguments = theMap
+            )
+
+            val extrinsic = builder.build()
+            socketService?.subscribe(
+                RpcRequest.Rpc2(
+                    RuntimeRequest(
+                        method = "author_submitAndWatchExtrinsic",
+                        params = listOf(extrinsic)
+                    )
+                ),
+                object : SocketService.ResponseListener<SubscriptionChange> {
+                    override fun onError(throwable: Throwable) {
+                        trySend(StorageData(error = throwable.message.toString())).isSuccess
+                    }
+
+                    override fun onNext(response: SubscriptionChange) {
+                        val resultInBlock = response.params.result as? Map<*, *> ?: notValidResult(
+                            response.params.result,
+                            "storageResult"
+                        )
+                        if (resultInBlock["inBlock"] != null) {
+                            trySend(StorageData(inBlock = resultInBlock["inBlock"].toString())).isSuccess
+                        } else if (resultInBlock["finalized"] != null) {
+                            trySend(StorageData(finalized = resultInBlock["finalized"].toString())).isSuccess
+                            close()
+                        }
+                    }
+                },
+                ""
+            )
+            awaitClose {
+                disconnect()
+            }
+        }
     }
 
     // Method to remove an attribute from a DID document
