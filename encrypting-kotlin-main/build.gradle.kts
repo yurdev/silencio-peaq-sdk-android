@@ -16,7 +16,7 @@ plugins {
 val dokkaVersion: String by project
 val commonVersion: String by project
 val hashingVersion: String by project
-val sr25519Version: String = "1.0.1" // from PeaqSdk 1.0.13 16 Sep 2025
+val sr25519Version: String by project
 val eddsaVersion: String by project
 val web3jCryptoVersion: String by project
 val zcashBIP39Version: String by project
@@ -78,7 +78,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates("store.silencio", "encrypting-kotlin-main", "1.0.11")
+    coordinates("store.silencio", "encrypting-kotlin-main", "1.0.13")
 
     pom {
 
